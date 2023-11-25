@@ -14,7 +14,7 @@ export default function Page() {
           })
         }
       />
-      <Button title="BACK" onPress={() => router.back()} />
+      <Button title="BACK" onPress={() => router.replace('/')} />
     </>
   );
 }

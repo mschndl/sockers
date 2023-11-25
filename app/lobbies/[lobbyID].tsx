@@ -1,5 +1,5 @@
-import { Text } from 'react-native';
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Button, Text } from 'react-native';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 
 export default function Page() {
   const { lobbyID } = useLocalSearchParams<{ lobbyID: string }>();
@@ -7,9 +7,12 @@ export default function Page() {
     <>
       <Stack.Screen options={{ title: lobbyID }} />
       <Text>{lobbyID}</Text>
-      <Link href={{ pathname: '/game', params: { lobbyID } }} asChild>
-        <Text style={{ marginTop: 40 }}>Go to game</Text>
-      </Link>
+      <Button
+        title="Start"
+        onPress={() =>
+          router.replace({ pathname: '/game', params: { lobbyID } })
+        }
+      />
     </>
   );
 }
