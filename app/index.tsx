@@ -1,8 +1,13 @@
 import { Button, View } from 'react-native';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
+import socket from 'socket';
 
 export default function Page() {
-  // const port = process.env.EXPO_PUBLIC_PORT;
+  useEffect(() => {
+    socket.connect();
+    socket.on('connect', () => console.log('connected'));
+  }, []);
   return (
     <View style={{ flex: 1, alignContent: 'center', justifyContent: 'center' }}>
       <Button

@@ -1,4 +1,4 @@
-import { SOCKET_ENDPOINT } from 'common/constants';
+import { SOCKET_ENDPOINT } from '../common/constants';
 import { io } from 'socket.io-client';
 
 const socket = io(SOCKET_ENDPOINT, {
