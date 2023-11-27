@@ -56,8 +56,7 @@ io.on('connection', (socket: Socket) => {
     socket.emit('createRoomResponse', { success: true, roomId });
     socket.leave('lobbies');
     socket.join(roomId);
-    const lobbiesData = lobbies;
-    io.to('lobbies').emit('lobbiesUpdate', lobbiesData);
+    io.to('lobbies').emit('lobbiesUpdate', lobbies);
   });
 
   socket.on('joinLobby', (lobbyId) => {
@@ -92,8 +91,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('getLobbyData', (lobbyID) => {
     const lobby = lobbies.find((lobby) => lobby.id === lobbyID);
     if (lobby) {
-      const lobbyData = lobby;
-      socket.emit('lobbyUpdate', lobbyData);
+      socket.emit('lobbyUpdate', lobby);
     } else {
       console.error(`Lobby ${lobbyID} not found.`);
     }
@@ -105,15 +103,13 @@ io.on('connection', (socket: Socket) => {
       delete selectedLobby.players[socket.id];
       socket.leave(lobbyId);
       io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
-      const lobbiesData = lobbies;
-      io.to('lobbies').emit('lobbiesUpdate', lobbiesData);
+      io.to('lobbies').emit('lobbiesUpdate', lobbies);
       if (Object.keys(selectedLobby.players).length === 0) {
         const lobbyIndex = lobbies.findIndex((lobby) => lobby.id === lobbyId);
         if (lobbyIndex !== -1) {
           lobbies.splice(lobbyIndex, 1);
         }
-        const updatedLobbiesData = lobbies;
-        io.to('lobbies').emit('lobbiesUpdate', updatedLobbiesData);
+        io.to('lobbies').emit('lobbiesUpdate', lobbies);
       }
     } else {
       console.error(`Lobby ${lobbyId} not found.`);
