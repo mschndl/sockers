@@ -101,6 +101,7 @@ io.on('connection', (socket: Socket) => {
     const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
     if (selectedLobby) {
       delete selectedLobby.players[socket.id];
+      socket.leave(lobbyId);
       io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
       const lobbiesData = lobbies;
       io.to('lobbies').emit('lobbiesUpdate', lobbiesData);
