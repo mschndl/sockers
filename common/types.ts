@@ -1,12 +1,17 @@
 export interface Lobby {
   id: string;
-  players: { [pid: string]: Player };
+  name: string;
+  players: { [pid: string]: LobbyPlayer };
 }
 
 export interface Player {
   id: string;
   isHost: boolean;
   username: string;
+}
+
+export interface LobbyPlayer extends Player {
+  ready: boolean;
 }
 
 export interface JoinLobbyResponse {

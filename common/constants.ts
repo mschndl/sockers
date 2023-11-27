@@ -1,4 +1,4 @@
-export const IP = '192.168.9.29';
+export const IP = '192.168.178.21';
 export const PORT = 3000;
 
 export const SOCKET_ENDPOINT = `http://${IP}:${PORT}`;

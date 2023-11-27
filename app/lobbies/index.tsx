@@ -1,22 +1,29 @@
 import { MAXIMUM_PLAYERS_PER_LOBBY } from 'common/constants';
 import { CreateLobbyResponse, JoinLobbyResponse, Lobby } from 'common/types';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   FlatList,
+  LayoutAnimation,
   ListRenderItem,
   Pressable,
   Text,
+  UIManager,
+  View,
 } from 'react-native';
 import socket from 'socket';
+
+UIManager.setLayoutAnimationEnabledExperimental &&
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 
 export default function Page() {
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
+  const prevLobbiesRef = useRef(lobbies);
+
   const handleLobbiesUpdate = useCallback((lobbiesUpdate: Lobby[]) => {
-    console.log('lobbiesUpdate', lobbiesUpdate.length);
     setLobbies(lobbiesUpdate);
     setRefreshing(false);
   }, []);
@@ -48,10 +55,27 @@ export default function Page() {
     };
 
     return (
-      <Pressable onPress={handleJoinLobby}>
+      <Pressable
+        style={{
+          borderRadius: 4,
+          backgroundColor: 'white',
+          padding: 10,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 1,
+          },
+          shadowOpacity: 0.2,
+          shadowRadius: 1.41,
+
+          elevation: 2,
+        }}
+        onPress={handleJoinLobby}
+      >
         <Text>
-          Lobby ID: {item.id} Players: {Object.keys(item.players).length}/
-          {MAXIMUM_PLAYERS_PER_LOBBY}
+          <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+          {' | '}
+          {Object.keys(item.players).length}/{MAXIMUM_PLAYERS_PER_LOBBY + '👥'}
         </Text>
       </Pressable>
     );
@@ -76,22 +100,48 @@ export default function Page() {
     });
   }, []);
 
+  useEffect(() => {
+    if (lobbies.length < prevLobbiesRef.current.length) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    prevLobbiesRef.current = lobbies;
+  }, [lobbies]);
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Active games' }} />
+      <Stack.Screen
+        options={{
+          title: 'Active games',
+          headerRight: () => <Button title="+" onPress={handleCreateRoom} />,
+        }}
+      />
       <FlatList
         contentContainerStyle={{
           alignItems: 'center',
+          gap: 10,
+          padding: 10,
         }}
         data={lobbies}
         keyExtractor={(lobby) => lobby.id}
         renderItem={renderLobbyItem}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+        ListHeaderComponent={() => (
+          <View>
+            <Text>headers</Text>
+          </View>
+        )}
       />
-      <Button title="CREATE ROOM" onPress={handleCreateRoom} />
-      <Button title="Go to settings" onPress={() => router.push('/settings')} />
-      <Button title="BACK" onPress={() => router.replace('/')} />
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-evenly',
+          marginBottom: 40,
+        }}
+      >
+        <Button title="Settings" onPress={() => router.push('/settings')} />
+        <Button title="Home" onPress={() => router.replace('/')} />
+      </View>
     </>
   );
 }

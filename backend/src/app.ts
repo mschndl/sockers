@@ -3,7 +3,7 @@ import http from 'http';
 import { Server, Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { MAXIMUM_PLAYERS_PER_LOBBY, PORT } from '../../common/constants';
-import { Lobby } from '../../common/types'; // FIXME: non e' bello per niente
+import { Lobby, LobbyPlayer } from '../../common/types'; // FIXME: non e' bello per niente
 
 const app = express();
 const port = PORT;
@@ -16,13 +16,18 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const lobbies: Lobby[] = [
-  { id: '0', players: {} },
-  { id: '1', players: {} },
-  { id: '4', players: {} },
-  { id: '3', players: {} },
+  { id: '0', name: 'Lobby 1', players: {} },
+  { id: '1', name: 'Lobby 2', players: {} },
+  { id: '4', name: 'Lobby 3', players: {} },
+  { id: '3', name: 'Lobby 4', players: {} },
 ];
 
-lobbies[2].players['0'] = { id: '0', isHost: true, username: 'pippo' };
+lobbies[2].players['0'] = {
+  id: '0',
+  isHost: true,
+  ready: false,
+  username: 'Pippo',
+};
 
 io.on('connection', (socket: Socket) => {
   console.log(`user ${socket.id} connected`);
@@ -48,12 +53,19 @@ io.on('connection', (socket: Socket) => {
     const roomId = uuidv4();
     const lobbyToAdd = {
       id: roomId,
+      name: roomId,
       players: {
-        [socket.id]: { id: socket.id, isHost: true, username: 'Host' },
+        [socket.id]: {
+          id: socket.id,
+          isHost: true,
+          ready: false,
+          username: 'Creator',
+        },
       },
     };
     lobbies.push(lobbyToAdd);
     socket.emit('createRoomResponse', { success: true, roomId });
+    socket.emit('becomeHost');
     socket.leave('lobbies');
     socket.join(roomId);
     io.to('lobbies').emit('lobbiesUpdate', lobbies);
@@ -69,7 +81,8 @@ io.on('connection', (socket: Socket) => {
         socket.join(lobbyId);
         selectedLobby.players[socket.id] = {
           id: socket.id,
-          isHost: false,
+          isHost: Object.keys(selectedLobby.players).length === 0,
+          ready: false,
           username: 'Joiner',
         };
         socket.emit('joinLobbyResponse', { success: true });
@@ -99,18 +112,29 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('leftLobby', (lobbyId) => {
     const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
+    let wasHost;
     if (selectedLobby) {
+      wasHost = selectedLobby?.players[socket.id].isHost;
       delete selectedLobby.players[socket.id];
       socket.leave(lobbyId);
       io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
-      io.to('lobbies').emit('lobbiesUpdate', lobbies);
       if (Object.keys(selectedLobby.players).length === 0) {
         const lobbyIndex = lobbies.findIndex((lobby) => lobby.id === lobbyId);
         if (lobbyIndex !== -1) {
           lobbies.splice(lobbyIndex, 1);
         }
-        io.to('lobbies').emit('lobbiesUpdate', lobbies);
+      } else {
+        if (wasHost) {
+          const playersArray: LobbyPlayer[] = Object.values(
+            selectedLobby.players
+          );
+          const randomPlayer: LobbyPlayer =
+            playersArray[Math.floor(Math.random() * playersArray.length)];
+          randomPlayer.isHost = true;
+        }
+        io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
       }
+      io.to('lobbies').emit('lobbiesUpdate', lobbies);
     } else {
       console.error(`Lobby ${lobbyId} not found.`);
     }
