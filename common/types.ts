@@ -5,6 +5,7 @@ export interface Lobby {
 
 export interface Player {
   id: string;
+  isHost: boolean;
   username: string;
 }
 

@@ -29,7 +29,9 @@ export default function Page() {
 
   const renderPlayerItem = ({ item }: { item: Player }) => (
     <View>
-      <Text>{item.username}</Text>
+      <Text>
+        {item.username} {item.isHost ? 'HOST' : null}
+      </Text>
     </View>
   );
 
@@ -60,7 +62,7 @@ export default function Page() {
           renderItem={renderPlayerItem}
         />
       )}
-
+      <Button title="Go to settings" onPress={() => router.push('/settings')} />
       <Button title="Start" onPress={handleStartGame} />
     </>
   );

@@ -22,7 +22,7 @@ const lobbies: Lobby[] = [
   { id: '3', players: {} },
 ];
 
-lobbies[2].players['0'] = { id: '0', username: 'pippo' };
+lobbies[2].players['0'] = { id: '0', isHost: true, username: 'pippo' };
 
 io.on('connection', (socket: Socket) => {
   console.log(`user ${socket.id} connected`);
@@ -48,7 +48,9 @@ io.on('connection', (socket: Socket) => {
     const roomId = uuidv4();
     const lobbyToAdd = {
       id: roomId,
-      players: { [socket.id]: { id: socket.id, username: 'Host' } },
+      players: {
+        [socket.id]: { id: socket.id, isHost: true, username: 'Host' },
+      },
     };
     lobbies.push(lobbyToAdd);
     socket.emit('createRoomResponse', { success: true, roomId });
@@ -59,7 +61,6 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('joinLobby', (lobbyId) => {
-    console.log('received', io.sockets.adapter.rooms);
     const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
     if (selectedLobby) {
       const isJoinable =
@@ -69,6 +70,7 @@ io.on('connection', (socket: Socket) => {
         socket.join(lobbyId);
         selectedLobby.players[socket.id] = {
           id: socket.id,
+          isHost: false,
           username: 'Joiner',
         };
         socket.emit('joinLobbyResponse', { success: true });
