@@ -10,7 +10,7 @@
     "ts:check": "tsc"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
+    "*.{js,jsx,ts,tsx,json}": [
       "prettier --write",
       "eslint --fix"
     ]

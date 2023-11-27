@@ -1,6 +1,6 @@
 export interface Lobby {
   id: string;
-  players: Map<string, Player>;
+  players: { [pid: string]: Player };
 }
 
 export interface Player {

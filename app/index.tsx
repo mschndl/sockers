@@ -1,6 +1,6 @@
-import { Button, View } from 'react-native';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
+import { Button, View } from 'react-native';
 import socket from 'socket';
 
 export default function Page() {
@@ -14,6 +14,7 @@ export default function Page() {
         title="Go to lobbies"
         onPress={() => router.replace('/lobbies')}
       />
+      <Button title="Go to settings" onPress={() => router.push('/settings')} />
     </View>
   );
 }

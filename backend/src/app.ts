@@ -1,8 +1,10 @@
 import express from 'express';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
-import { MAXIMUM_PLAYERS_PER_LOBBY, PORT } from '../../common/constants';
 import { v4 as uuidv4 } from 'uuid';
+import { MAXIMUM_PLAYERS_PER_LOBBY, PORT } from '../../common/constants';
+import { Lobby } from '../../common/types'; // FIXME: non e' bello per niente
+
 const app = express();
 const port = PORT;
 
@@ -13,14 +15,14 @@ app.get('/', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server);
 
-const lobbies = [
-  { id: '0', players: new Map() },
-  { id: '1', players: new Map() },
-  { id: '4', players: new Map() },
-  { id: '3', players: new Map() },
+const lobbies: Lobby[] = [
+  { id: '0', players: {} },
+  { id: '1', players: {} },
+  { id: '4', players: {} },
+  { id: '3', players: {} },
 ];
 
-lobbies[2].players.set('0', { id: '0', username: 'pippo' });
+lobbies[2].players['0'] = { id: '0', username: 'pippo' };
 
 io.on('connection', (socket: Socket) => {
   console.log(`user ${socket.id} connected`);
@@ -29,7 +31,7 @@ io.on('connection', (socket: Socket) => {
     socket.join('lobbies');
     const lobbiesData = lobbies.map((lobby) => ({
       ...lobby,
-      players: Object.fromEntries(lobby.players),
+      players: lobby.players,
     }));
     socket.emit('lobbiesUpdate', lobbiesData);
   });
@@ -37,43 +39,40 @@ io.on('connection', (socket: Socket) => {
   socket.on('getLobbiesData', () => {
     const lobbiesData = lobbies.map((lobby) => ({
       ...lobby,
-      players: Object.fromEntries(lobby.players),
+      players: lobby.players,
     }));
     socket.emit('lobbiesUpdate', lobbiesData);
   });
 
   socket.on('createRoom', () => {
-    // Your logic to create a room
-    const roomId = uuidv4(); //... (generate a unique room ID)
-    // Notify the client about the result
-    const lobbyToAdd = { id: roomId, players: new Map() };
-    lobbyToAdd.players.set(socket.id, {
-      id: socket.id,
-      username: 'Host',
-    });
+    const roomId = uuidv4();
+    const lobbyToAdd = {
+      id: roomId,
+      players: { [socket.id]: { id: socket.id, username: 'Host' } },
+    };
     lobbies.push(lobbyToAdd);
     socket.emit('createRoomResponse', { success: true, roomId });
     socket.leave('lobbies');
     socket.join(roomId);
-    const lobbiesData = lobbies.map((lobby) => ({
-      ...lobby,
-      players: Object.fromEntries(lobby.players),
-    }));
+    const lobbiesData = lobbies;
     io.to('lobbies').emit('lobbiesUpdate', lobbiesData);
   });
 
-  socket.on('joinLobby', ({ lobbyId }) => {
+  socket.on('joinLobby', (lobbyId) => {
+    console.log('received', io.sockets.adapter.rooms);
     const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
     if (selectedLobby) {
-      const isJoinable = selectedLobby.players.size < MAXIMUM_PLAYERS_PER_LOBBY;
+      const isJoinable =
+        Object.keys(selectedLobby.players).length < MAXIMUM_PLAYERS_PER_LOBBY;
       if (isJoinable) {
         socket.leave('lobbies');
         socket.join(lobbyId);
-        selectedLobby.players.set(socket.id, {
+        selectedLobby.players[socket.id] = {
           id: socket.id,
           username: 'Joiner',
-        });
+        };
         socket.emit('joinLobbyResponse', { success: true });
+        io.to('lobbies').emit('lobbiesUpdate', lobbies);
       } else {
         socket.emit('joinLobbyResponse', {
           success: false,
@@ -91,14 +90,30 @@ io.on('connection', (socket: Socket) => {
   socket.on('getLobbyData', (lobbyID) => {
     const lobby = lobbies.find((lobby) => lobby.id === lobbyID);
     if (lobby) {
-      const lobbyData = {
-        ...lobby,
-        players: Object.fromEntries(lobby.players),
-      };
+      const lobbyData = lobby;
       socket.emit('lobbyUpdate', lobbyData);
     } else {
-      // Handle the case where the lobby is not found
       console.error(`Lobby ${lobbyID} not found.`);
+    }
+  });
+
+  socket.on('leftLobby', (lobbyId) => {
+    const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
+    if (selectedLobby) {
+      delete selectedLobby.players[socket.id];
+      io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
+      const lobbiesData = lobbies;
+      io.to('lobbies').emit('lobbiesUpdate', lobbiesData);
+      if (Object.keys(selectedLobby.players).length === 0) {
+        const lobbyIndex = lobbies.findIndex((lobby) => lobby.id === lobbyId);
+        if (lobbyIndex !== -1) {
+          lobbies.splice(lobbyIndex, 1);
+        }
+        const updatedLobbiesData = lobbies;
+        io.to('lobbies').emit('lobbiesUpdate', updatedLobbiesData);
+      }
+    } else {
+      console.error(`Lobby ${lobbyId} not found.`);
     }
   });
 

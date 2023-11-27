@@ -1,29 +1,23 @@
+import { MAXIMUM_PLAYERS_PER_LOBBY } from 'common/constants';
+import { CreateLobbyResponse, JoinLobbyResponse, Lobby } from 'common/types';
+import { Stack, router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   Button,
+  FlatList,
   ListRenderItem,
   Pressable,
   Text,
-  FlatList,
 } from 'react-native';
-import { Stack, router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
 import socket from 'socket';
-import { CreateLobbyResponse, JoinLobbyResponse, Lobby } from 'common/types';
-import { MAXIMUM_PLAYERS_PER_LOBBY } from 'common/constants';
 
 export default function Page() {
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const handleLobbiesUpdate = useCallback((lobbiesUpdate: Lobby[]) => {
-    setLobbies(() => {
-      const updatedLobbies = lobbiesUpdate.map((lobby) => ({
-        ...lobby,
-        players: new Map(Object.entries(lobby.players)),
-      }));
-      return [...updatedLobbies];
-    });
-
+    console.log('lobbiesUpdate', lobbiesUpdate.length);
+    setLobbies(lobbiesUpdate);
     setRefreshing(false);
   }, []);
 
@@ -40,11 +34,11 @@ export default function Page() {
 
   const renderLobbyItem: ListRenderItem<Lobby> = ({ item }) => {
     const handleJoinLobby = () => {
-      socket.emit('joinLobby', { lobbyId: item.id });
+      socket.emit('joinLobby', item.id);
       socket.once('joinLobbyResponse', (response: JoinLobbyResponse) => {
         if (response.success) {
           router.push({
-            pathname: '/lobbies/[lobbyID]',
+            pathname: '/[lobbyID]/',
             params: { lobbyID: item.id },
           });
         } else {
@@ -56,7 +50,7 @@ export default function Page() {
     return (
       <Pressable onPress={handleJoinLobby}>
         <Text>
-          Lobby ID: {item.id} Players: {item.players.size}/
+          Lobby ID: {item.id} Players: {Object.keys(item.players).length}/
           {MAXIMUM_PLAYERS_PER_LOBBY}
         </Text>
       </Pressable>
@@ -64,7 +58,7 @@ export default function Page() {
   };
 
   const handleRefresh = useCallback(() => {
-    setRefreshing(true); // Start the refresh loading indicator
+    setRefreshing(true);
     socket.emit('getLobbiesData');
   }, []);
 
@@ -73,7 +67,7 @@ export default function Page() {
     socket.once('createRoomResponse', (response: CreateLobbyResponse) => {
       if (response.success) {
         router.push({
-          pathname: '/lobbies/[lobbyID]',
+          pathname: '/[lobbyID]/',
           params: { lobbyID: response.roomId },
         });
       } else {
@@ -96,6 +90,7 @@ export default function Page() {
         onRefresh={handleRefresh}
       />
       <Button title="CREATE ROOM" onPress={handleCreateRoom} />
+      <Button title="Go to settings" onPress={() => router.push('/settings')} />
       <Button title="BACK" onPress={() => router.replace('/')} />
     </>
   );
