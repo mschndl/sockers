@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import socket from 'socket';
+import useStore from 'store';
 
 UIManager.setLayoutAnimationEnabledExperimental &&
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -20,6 +21,7 @@ UIManager.setLayoutAnimationEnabledExperimental &&
 export default function Page() {
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const { username } = useStore();
 
   const prevLobbiesRef = useRef(lobbies);
 
@@ -41,7 +43,7 @@ export default function Page() {
 
   const renderLobbyItem: ListRenderItem<Lobby> = ({ item }) => {
     const handleJoinLobby = () => {
-      socket.emit('joinLobby', item.id);
+      socket.emit('joinLobby', item.id, username);
       socket.once('joinLobbyResponse', (response: JoinLobbyResponse) => {
         if (response.success) {
           router.push({
@@ -87,7 +89,7 @@ export default function Page() {
   }, []);
 
   const handleCreateRoom = useCallback(() => {
-    socket.emit('createRoom');
+    socket.emit('createRoom', username);
     socket.once('createRoomResponse', (response: CreateLobbyResponse) => {
       if (response.success) {
         router.push({
@@ -98,7 +100,7 @@ export default function Page() {
         console.error('Failed to create room:', response.error);
       }
     });
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     if (lobbies.length < prevLobbiesRef.current.length) {

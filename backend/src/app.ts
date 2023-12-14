@@ -49,7 +49,7 @@ io.on('connection', (socket: Socket) => {
     socket.emit('lobbiesUpdate', lobbiesData);
   });
 
-  socket.on('createRoom', () => {
+  socket.on('createRoom', (username) => {
     const roomId = uuidv4();
     const lobbyToAdd = {
       id: roomId,
@@ -59,7 +59,7 @@ io.on('connection', (socket: Socket) => {
           id: socket.id,
           isHost: true,
           ready: false,
-          username: 'Creator',
+          username,
         },
       },
     };
@@ -71,7 +71,7 @@ io.on('connection', (socket: Socket) => {
     io.to('lobbies').emit('lobbiesUpdate', lobbies);
   });
 
-  socket.on('joinLobby', (lobbyId) => {
+  socket.on('joinLobby', (lobbyId, username) => {
     const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
     if (selectedLobby) {
       const isJoinable =
@@ -83,10 +83,11 @@ io.on('connection', (socket: Socket) => {
           id: socket.id,
           isHost: Object.keys(selectedLobby.players).length === 0,
           ready: false,
-          username: 'Joiner',
+          username,
         };
         socket.emit('joinLobbyResponse', { success: true });
         io.to('lobbies').emit('lobbiesUpdate', lobbies);
+        io.to(lobbyId).emit('lobbyUpdate', selectedLobby);
       } else {
         socket.emit('joinLobbyResponse', {
           success: false,
