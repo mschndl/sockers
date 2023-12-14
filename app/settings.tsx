@@ -1,9 +1,9 @@
-import { Text } from 'react-native';
+import { Stack } from 'expo-router';
 
 export default function SettingsPage() {
   return (
     <>
-      <Text style={{ marginTop: 50 }}>Settings</Text>
+      <Stack.Screen options={{ headerShown: true, headerTitle: 'Settings' }} />
     </>
   );
 }
