@@ -26,6 +26,9 @@ export default function Page() {
   const prevLobbiesRef = useRef(lobbies);
 
   const handleLobbiesUpdate = useCallback((lobbiesUpdate: Lobby[]) => {
+    if (lobbiesUpdate.length > prevLobbiesRef.current.length) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
     setLobbies(lobbiesUpdate);
     setRefreshing(false);
   }, []);
