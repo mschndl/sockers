@@ -47,7 +47,11 @@ export default function Page() {
             value={username}
             onChangeText={(text) => setUsername(text)}
           />
-          <Button title="Confirm" onPress={handleUsernameConfirm} />
+          <Button
+            title="Confirm"
+            onPress={handleUsernameConfirm}
+            disabled={username === ''}
+          />
         </>
       ) : (
         <>
