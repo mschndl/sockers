@@ -143,7 +143,58 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {
     console.log(`user ${socket.id} disconnected`);
+    const lobbyId = getLobbyIdBySocketId(socket.id);
+    if (lobbyId) {
+      updateLobbyOnUserDisconnect(lobbyId, socket.id);
+      io.to(lobbyId).emit(
+        'lobbyUpdate',
+        lobbies.find((lobby) => lobby.id === lobbyId)
+      );
+    }
+    io.to('lobbies').emit('lobbiesUpdate', lobbies);
   });
+
+  function getLobbyIdBySocketId(socketId: string) {
+    for (const lobby of lobbies) {
+      if (lobby.players[socketId]) {
+        return lobby.id;
+      }
+    }
+    return null;
+  }
+
+  function updateLobbyOnUserDisconnect(
+    lobbyId: string,
+    disconnectedSocketId: string
+  ) {
+    const selectedLobby = lobbies.find((lobby) => lobby.id === lobbyId);
+
+    if (selectedLobby) {
+      const disconnectedPlayer = selectedLobby.players[disconnectedSocketId];
+
+      if (disconnectedPlayer) {
+        const wasHost = disconnectedPlayer.isHost;
+        delete selectedLobby.players[disconnectedSocketId];
+
+        if (wasHost) {
+          const playersArray = Object.values(selectedLobby.players);
+
+          if (playersArray.length > 0) {
+            const randomPlayer =
+              playersArray[Math.floor(Math.random() * playersArray.length)];
+            randomPlayer.isHost = true;
+          }
+        }
+
+        if (Object.keys(selectedLobby.players).length === 0) {
+          const lobbyIndex = lobbies.findIndex((lobby) => lobby.id === lobbyId);
+          if (lobbyIndex !== -1) {
+            lobbies.splice(lobbyIndex, 1);
+          }
+        }
+      }
+    }
+  }
 });
 
 server.listen(port, '0.0.0.0', () => {
